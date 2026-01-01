@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The K-Means Laboratory | Interactive Simulation</title>
+    <style>
+        :root {
+            /* The Economist Palette */
+            --eco-red: #E3120B;
+            --eco-blue: #004687;
+            --eco-bg: #F3F3F3;
+            --eco-panel: #FFFFFF;
+            --eco-text: #222222;
+            --eco-subtext: #595959;
+            --eco-border: #D7D7D7;
+
+            /* Cluster Palette (Distinct & Professional) */
+            --c0: #007EA7;
+            /* Ocean */
+            --c1: #D64933;
+            /* Rust */
+            --c2: #F0C419;
+            /* Mustard */
+            --c3: #4B3F72;
+            /* Deep Purple */
+            --c4: #58A4B0;
+            /* Teal */
+            --c5: #6D6875;
+            /* Lavender Grey */
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+            background-color: var(--eco-bg);
+            color: var(--eco-text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background: white;
+            padding: 15px 40px;
+            border-top: 4px solid var(--eco-red);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .brand h1 {
+            font-family: "Georgia", serif;
+            /* Economist serif feel */
+            font-size: 26px;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .brand span {
+            font-family: "Segoe UI", sans-serif;
+            font-size: 13px;
+            color: var(--eco-subtext);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-left: 10px;
+        }
+
+        .metrics {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .metric-box {
+            text-align: right;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: var(--eco-subtext);
+            text-transform: uppercase;
+        }
+
+        .metric-value {
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- Main Layout --- */
+        #workspace {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar Controls --- */
+        #sidebar {
+            width: 300px;
+            background: var(--eco-panel);
+            border-right: 1px solid var(--eco-border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            overflow-y: auto;
+            z-index: 5;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-header {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--eco-red);
+            border-bottom: 2px solid var(--eco-red);
+            padding-bottom: 4px;
+            margin-bottom: 5px;
+        }
+
+        /* Custom Inputs */
+        label {
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--eco-blue);
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--eco-border);
+            border-radius: 4px;
+            font-family: inherit;
+            background: white;
+        }
+
+        /* Action Buttons */
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--eco-red);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c00f09;
+            box-shadow: 0 2px 8px rgba(227, 18, 11, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--eco-border);
+            color: var(--eco-text);
+        }
+
+        .btn-secondary:hover {
+            background: #f9f9f9;
+            border-color: #bbb;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        /* --- Canvas Area --- */
+        #canvas-wrapper {
+            flex: 1;
+            position: relative;
+            background: #eef2f5;
+            cursor: crosshair;
+            overflow: hidden;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #voronoi-canvas {
+            opacity: 0.4;
+        }
+
+        /* Soft background look */
+
+        /* --- Overlay UI (Toast/Instructions) --- */
+        #overlay-ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            font-weight: 500;
+            pointer-events: none;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: opacity 0.3s;
+        }
+
+        /* --- Toggle Switch --- */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--eco-blue);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(16px);
+        }
+
+        /* Comparison Bar */
+        .score-comp {
+            margin-top: 10px;
+        }
+
+        .score-bar-bg {
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            background: var(--eco-blue);
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .score-ai-fill {
+            background: var(--eco-red);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">
+            <h1>K-Means: Human vs Algorithm</h1>
+            <span>v1.1 by Miles</span>
+        </div>
+        <div class="metrics">
+            <div class="metric-box">
+                <div class="metric-label">Points (N)</div>
+                <div class="metric-value" id="disp-n">300</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Current Inertia</div>
+                <div class="metric-value" id="disp-inertia" style="color:var(--eco-blue)">--</div>
+            </div>
+        </div>
+    </header>
+
+    <div id="workspace">
+        <!-- Sidebar -->
+        <aside id="sidebar">
+
+            <!-- Data Config -->
+            <div class="control-group">
+                <div class="control-header">Dataset Topology</div>
+                <select id="data-type" onchange="Game.reset()">
+                    <option value="gaussian">Gaussian Blobs (Standard)</option>
+                    <option value="aniso">Anisotropic (Stretched)</option>
+                    <option value="rings">Concentric Rings (Linear Fail)</option>
+                    <option value="spirals">Twin Spirals (Hard)</option>
+                    <option value="uniform">Uniform Noise (No Cluster)</option>
+                </select>
+                <div style="font-size:11px; color:#666; font-style:italic; margin-top:-5px;">
+                    Tip: Shift+Click on canvas to draw points.
+                </div>
+
+                <label>
+                    <span>Spread / Noise</span>
+                    <span id="val-noise">1.0</span>
+                </label>
+                <input type="range" id="param-noise" min="0.5" max="3.0" step="0.1" value="1.0"
+                    oninput="updateVal('val-noise', this.value); Game.requestDataRegen()">
+            </div>
+
+            <!-- Algorithm Config -->
+            <div class="control-group">
+                <div class="control-header">Algorithm Params</div>
+                <label>
+                    <span>Clusters (K)</span>
+                    <span id="val-k">3</span>
+                </label>
+                <input type="range" id="param-k" min="2" max="6" step="1" value="3"
+                    oninput="updateVal('val-k', this.value); Game.reset()">
+            </div>
+
+            <!-- Visuals -->
+            <div class="control-group">
+                <div class="control-header">Visualization</div>
+                <div class="toggle-row">
+                    <span>Show Voronoi Regions</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="check-voronoi" checked onchange="Game.toggleVoronoi()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-row" style="margin-top:8px;">
+                    <span>Show Centroids</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="check-centroids" checked onchange="Game.render()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Game Actions -->
+            <div class="control-group" style="margin-top:auto">
+                <div class="control-header">Controls</div>
+                <button class="btn btn-primary" id="btn-run" onclick="Game.runAI()" disabled>Run K-Means
+                    Algorithm</button>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="Game.stepAI()" id="btn-step" disabled>Step</button>
+                    <button class="btn btn-secondary" onclick="Game.reset()">Reset</button>
+                </div>
+            </div>
+
+            <!-- Results (Hidden until run) -->
+            <div id="result-box" style="display:none; border-top:1px solid #ddd; padding-top:15px;">
+                <div class="control-header">Performance Analysis</div>
+                <div class="score-comp">
+                    <label>Human Efficiency</label>
+                    <div class="score-bar-bg">
+                        <div class="score-bar-fill" id="bar-human"></div>
+                    </div>
+                    <div style="text-align:right; font-size:12px; font-weight:bold; margin-top:2px;" id="text-human">--
+                    </div>
+                </div>
+                <div class="score-comp">
+                    <label style="color:var(--eco-red)">Algorithm Efficiency</label>
+                    <div class="score-bar-bg">
+                        <div class="score-bar-fill score-ai-fill" id="bar-ai"></div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Canvas -->
+        <div id="canvas-wrapper">
+            <canvas id="voronoi-canvas"></canvas>
+            <canvas id="main-canvas"></canvas>
+            <div id="overlay-ui">Place <b>3</b> centroids to minimize inertia.</div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * THE K-MEANS LABORATORY ENGINE
+         * 
+         * Modular architecture:
+         * 1. Utils: Math & Helper functions.
+         * 2. DataEngine: Generates complex datasets.
+         * 3. Renderer: Handles High-DPI canvas drawing & Voronoi.
+         * 4. Logic: Core K-Means math.
+         * 5. Game: State management & Events.
+         */
+
+        /* --- 1. UTILS --- */
+        const Utils = {
+            rand: (min, max) => Math.random() * (max - min) + min,
+            randNormal: (mean, std) => {
+                let u = 0, v = 0;
+                while (u === 0) u = Math.random();
+                while (v === 0) v = Math.random();
+                const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+                return mean + z * std;
+            },
+            distSq: (p1, p2) => (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2,
+            lerp: (start, end, t) => start * (1 - t) + end * t,
+            clamp: (num, min, max) => Math.min(Math.max(num, min), max),
+            // HSL to Hex helper for distinct colors
+            getClusterColor: (k, alpha = 1) => {
+                const colors = [
+                    'rgba(0, 126, 167, A)',   // Ocean
+                    'rgba(214, 73, 51, A)',   // Rust
+                    'rgba(240, 196, 25, A)',  // Mustard
+                    'rgba(75, 63, 114, A)',   // Purple
+                    'rgba(88, 164, 176, A)',  // Teal
+                    'rgba(109, 104, 117, A)'  // Grey
+                ];
+                return colors[k % colors.length].replace('A', alpha);
+            }
+        };
+
+        /* --- 2. DATA ENGINE --- */
+        class DataGenerator {
+            constructor(w, h) {
+                this.w = w;
+                this.h = h;
+            }
+
+            generate(type, k, noiseLevel) {
+                let points = [];
+                const nPerCluster = Math.floor(300 / k); // Target ~300 points total
+
+                if (type === 'gaussian') {
+                    for (let i = 0; i < k; i++) {
+                        const cx = Utils.rand(this.w * 0.2, this.w * 0.8);
+                        const cy = Utils.rand(this.h * 0.2, this.h * 0.8);
+                        for (let j = 0; j < nPerCluster; j++) {
+                            points.push({
+                                x: Utils.randNormal(cx, 30 * noiseLevel),
+                                y: Utils.randNormal(cy, 30 * noiseLevel),
+                                cluster: -1,
+                                color: '#7a8c99'
+                            });
+                        }
+                    }
+                } else if (type === 'aniso') {
+                    // Stretched Blobs
+                    for (let i = 0; i < k; i++) {
+                        const cx = Utils.rand(this.w * 0.2, this.w * 0.8);
+                        const cy = Utils.rand(this.h * 0.2, this.h * 0.8);
+                        // Create transformation matrix for stretching
+                        const angle = Utils.rand(0, Math.PI);
+                        const stretch = Utils.rand(3, 8);
+                        const cos = Math.cos(angle), sin = Math.sin(angle);
+
+                        for (let j = 0; j < nPerCluster; j++) {
+                            // Generate in standard normal, then rotate & stretch
+                            const rx = Utils.randNormal(0, 15 * noiseLevel) * stretch;
+                            const ry = Utils.randNormal(0, 15 * noiseLevel);
+                            points.push({
+                                x: cx + (rx * cos - ry * sin),
+                                y: cy + (rx * sin + ry * cos),
+                                cluster: -1,
+                                color: '#7a8c99'
+                            });
+                        }
+                    }
+                } else if (type === 'rings') {
+                    // Concentric Circles
+                    const cx = this.w / 2;
+                    const cy = this.h / 2;
+                    for (let i = 0; i < k; i++) {
+                        const radius = (i + 1) * (Math.min(this.w, this.h) / (2 * k + 1)) * 1.5;
+                        for (let j = 0; j < nPerCluster; j++) {
+                            const angle = Utils.rand(0, Math.PI * 2);
+                            const r = Utils.randNormal(radius, 5 * noiseLevel);
+                            points.push({
+                                x: cx + r * Math.cos(angle),
+                                y: cy + r * Math.sin(angle),
+                                cluster: -1,
+                                color: '#7a8c99'
+                            });
+                        }
+                    }
+                } else if (type === 'spirals') {
+                    // Twin Spirals (Intertwined)
+                    const cx = this.w / 2;
+                    const cy = this.h / 2;
+                    for (let i = 0; i < k; i++) {
+                        const deltaTheta = (Math.PI * 2) / k;
+                        for (let j = 0; j < nPerCluster; j++) {
+                            const t = j / nPerCluster; // 0 to 1
+                            const angle = t * 3 * Math.PI + (i * deltaTheta);
+                            const r = t * (Math.min(this.w, this.h) / 2.2);
+                            // Add noise
+                            const nx = Utils.randNormal(0, 5 * noiseLevel);
+                            const ny = Utils.randNormal(0, 5 * noiseLevel);
+                            points.push({
+                                x: cx + r * Math.cos(angle) + nx,
+                                y: cy + r * Math.sin(angle) + ny,
+                                cluster: -1,
+                                color: '#7a8c99'
+                            });
+                        }
+                    }
+                } else {
+                    // Uniform
+                    for (let i = 0; i < 300; i++) {
+                        points.push({
+                            x: Utils.rand(this.w * 0.05, this.w * 0.95),
+                            y: Utils.rand(this.h * 0.05, this.h * 0.95),
+                            cluster: -1,
+                            color: '#7a8c99'
+                        });
+                    }
+                }
+                return points;
+            }
+        }
+
+        /* --- 3. RENDERER --- */
+        class Renderer {
+            constructor(mainCanvasId, voronoiCanvasId) {
+                this.mainC = document.getElementById(mainCanvasId);
+                this.ctx = this.mainC.getContext('2d');
+
+                this.voronoiC = document.getElementById(voronoiCanvasId);
+                this.vCtx = this.voronoiC.getContext('2d');
+
+                this.width = 0;
+                this.height = 0;
+                this.dpr = window.devicePixelRatio || 1;
+
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                const wrapper = this.mainC.parentElement;
+                this.width = wrapper.clientWidth;
+                this.height = wrapper.clientHeight;
+
+                // Scale Main Canvas for High DPI
+                this.mainC.width = this.width * this.dpr;
+                this.mainC.height = this.height * this.dpr;
+                this.ctx.scale(this.dpr, this.dpr);
+
+                // Scale Voronoi Canvas (Low res is fine for performance, but we scale it up)
+                // We actually render Voronoi at 1/4 res to keep FPS high during drag
+                this.voronoiScale = 0.25;
+                this.voronoiC.width = this.width * this.voronoiScale;
+                this.voronoiC.height = this.height * this.voronoiScale;
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            drawVoronoi(centroids, k, enabled) {
+                if (!enabled || centroids.length === 0) {
+                    this.vCtx.clearRect(0, 0, this.voronoiC.width, this.voronoiC.height);
+                    return;
+                }
+
+                const w = this.voronoiC.width;
+                const h = this.voronoiC.height;
+                const imgData = this.vCtx.createImageData(w, h);
+                const data = imgData.data;
+
+                // Pixel Scan (Optimization: This is O(W*H*K), expensive. 
+                // Done on small canvas (1/4 size) makes it ~16x faster).
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        // Map low-res pixel to high-res coord
+                        const rx = x / this.voronoiScale;
+                        const ry = y / this.voronoiScale;
+
+                        let minDist = Infinity;
+                        let closest = -1;
+
+                        for (let i = 0; i < centroids.length; i++) {
+                            const d = (centroids[i].x - rx) ** 2 + (centroids[i].y - ry) ** 2;
+                            if (d < minDist) {
+                                minDist = d;
+                                closest = i;
+                            }
+                        }
+
+                        if (closest !== -1) {
+                            // Get RGB from CSS-like string is hard, using hardcoded palette map for speed
+                            // Ideally parse, but let's just use raw RGB for the heatmap
+                            const baseColors = [
+                                [0, 126, 167], [214, 73, 51], [240, 196, 25],
+                                [75, 63, 114], [88, 164, 176], [109, 104, 117]
+                            ];
+                            const c = baseColors[closest % baseColors.length];
+                            const idx = (y * w + x) * 4;
+                            data[idx] = c[0];
+                            data[idx + 1] = c[1];
+                            data[idx + 2] = c[2];
+                            data[idx + 3] = 40; // Low alpha
+                        }
+                    }
+                }
+                this.vCtx.putImageData(imgData, 0, 0);
+            }
+
+            drawPoints(points) {
+                points.forEach(p => {
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = p.targetColor || p.color || '#7a8c99'; // Use target color if animating
+                    this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            drawCentroids(centroids, isUser) {
+                centroids.forEach((c, idx) => {
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = isUser ? '#004687' : '#E3120B';
+                    this.ctx.strokeStyle = 'white';
+                    this.ctx.lineWidth = 2;
+
+                    // Draw X shape
+                    const s = 8;
+                    this.ctx.moveTo(c.x - s, c.y - s);
+                    this.ctx.lineTo(c.x + s, c.y + s);
+                    this.ctx.moveTo(c.x + s, c.y - s);
+                    this.ctx.lineTo(c.x - s, c.y + s);
+                    this.ctx.stroke(); // White outline
+
+                    this.ctx.lineWidth = 3;
+                    this.ctx.strokeStyle = isUser ? '#004687' : '#E3120B';
+                    this.ctx.stroke(); // Color fill
+
+                    // Draw History Trail
+                    if (c.history && c.history.length > 1) {
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = isUser ? 'rgba(0, 70, 135, 0.3)' : 'rgba(227, 18, 11, 0.3)';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.moveTo(c.history[0].x, c.history[0].y);
+                        for (let i = 1; i < c.history.length; i++) {
+                            this.ctx.lineTo(c.history[i].x, c.history[i].y);
+                        }
+                        this.ctx.stroke();
+                    }
+                });
+            }
+        }
+
+        /* --- 4. GAME ENGINE & STATE --- */
+        const Game = {
+            state: 'SETUP', // SETUP, PLACING, READY, RUNNING, FINISHED
+            points: [],
+            centroids: [], // User centroids
+            aiCentroids: [],
+            history: [], // For AI animation
+
+            // Config
+            k: 3,
+            noise: 1.0,
+            dataType: 'gaussian',
+            showVoronoi: true,
+
+            // Logic
+            renderer: null,
+            dataGen: null,
+
+            init: function () {
+                this.renderer = new Renderer('main-canvas', 'voronoi-canvas');
+                this.dataGen = new DataGenerator(this.renderer.width, this.renderer.height);
+
+                // Listeners
+                const cvs = document.getElementById('canvas-wrapper');
+                cvs.addEventListener('mousedown', (e) => this.handleInput(e, 'down'));
+                cvs.addEventListener('mousemove', (e) => this.handleInput(e, 'move'));
+                cvs.addEventListener('mouseup', (e) => this.handleInput(e, 'up'));
+
+                // Initial Data
+                setTimeout(() => this.reset(), 100); // Wait for layout
+            },
+
+            reset: function () {
+                this.state = 'SETUP';
+                this.centroids = [];
+                this.aiCentroids = [];
+                this.history = [];
+
+                // Read Inputs
+                this.k = parseInt(document.getElementById('param-k').value);
+                this.dataType = document.getElementById('data-type').value;
+                this.noise = parseFloat(document.getElementById('param-noise').value);
+
+                // Regen Data
+                this.points = this.dataGen.generate(this.dataType, this.k, this.noise);
+                this.renderer.resize(); // Ensure size is correct
+
+                // UI Reset
+                this.updateUI();
+                this.render();
+
+                // Transition to Placing
+                this.state = 'PLACING';
+                this.setToast(`Click to place ${this.k} Centroids.`);
+            },
+
+            requestDataRegen: function () {
+                // Debounce regen for sliders
+                if (this.regenTimeout) clearTimeout(this.regenTimeout);
+                this.regenTimeout = setTimeout(() => this.reset(), 300);
+            },
+
+            handleInput: function (e, type) {
+                const rect = this.renderer.mainC.getBoundingClientRect();
+                const x = (e.clientX - rect.left);
+                const y = (e.clientY - rect.top);
+
+                // God Mode: Shift + Click to add points
+                if (e.shiftKey && type === 'down') {
+                    this.points.push({ x, y, cluster: -1, color: '#7a8c99' });
+                    this.render();
+                    return;
+                }
+
+                if (this.state === 'PLACING' && type === 'down') {
+                    if (this.centroids.length < this.k) {
+                        this.centroids.push({ x, y, history: [{ x, y }] });
+                        // If this was the last one
+                        if (this.centroids.length === this.k) {
+                            this.state = 'READY';
+                            this.assignClusters(this.centroids, 'user');
+                            this.setToast('Ready. Run Algorithm or Drag User Centroids.');
+                        } else {
+                            this.setToast(`Place ${this.k - this.centroids.length} more...`);
+                        }
+                        this.render();
+                    }
+                    if (this.centroids.length === this.k) {
+                        this.state = 'READY';
+                        this.assignClusters(this.centroids, 'user');
+                        this.setToast('Ready. Run Algorithm or Drag User Centroids.');
+                        this.updateUI(); // <--- Add this line to enable the buttons
+                    }
+                }
+                else if ((this.state === 'READY' || this.state === 'FINISHED') && type === 'down') {
+                    // Drag Logic check
+                    this.dragIdx = this.centroids.findIndex(c => Utils.distSq(c, { x, y }) < 400); // 20px radius
+                }
+                else if (type === 'move' && this.dragIdx !== undefined && this.dragIdx !== -1) {
+                    this.centroids[this.dragIdx].x = x;
+                    this.centroids[this.dragIdx].y = y;
+                    // Realtime update
+                    this.assignClusters(this.centroids, 'user');
+                    this.render();
+                }
+                else if (type === 'up') {
+                    this.dragIdx = -1;
+                }
+            },
+
+            assignClusters: function (centroids, mode) {
+                if (centroids.length === 0) return 0;
+                let totalInertia = 0;
+
+                this.points.forEach(p => {
+                    let minDist = Infinity;
+                    let clusterIdx = -1;
+                    centroids.forEach((c, idx) => {
+                        const d = Utils.distSq(p, c);
+                        if (d < minDist) {
+                            minDist = d;
+                            clusterIdx = idx;
+                        }
+                    });
+
+                    // Only update color if we are in user mode or if it's the AI run
+                    if (mode === 'user') {
+                        p.userCluster = clusterIdx;
+                        p.color = Utils.getClusterColor(clusterIdx);
+                    } else {
+                        p.aiCluster = clusterIdx;
+                    }
+                    totalInertia += minDist;
+                });
+
+                if (mode === 'user') {
+                    document.getElementById('disp-inertia').innerText = Math.round(totalInertia).toLocaleString();
+                    this.userInertia = totalInertia;
+                }
+                return totalInertia;
+            },
+
+            runAI: function () {
+                if (this.state !== 'READY' && this.state !== 'FINISHED') return;
+                this.state = 'RUNNING';
+
+                // Deep copy points for AI calculation
+                const aiPoints = JSON.parse(JSON.stringify(this.points));
+
+                // 1. K-Means++ Initialization
+                // Pick first random
+                let cents = [];
+                cents.push(aiPoints[Math.floor(Math.random() * aiPoints.length)]);
+
+                // Pick rest based on probability proportional to distance squared
+                while (cents.length < this.k) {
+                    let dists = [];
+                    let sumDist = 0;
+                    aiPoints.forEach(p => {
+                        let minD = Infinity;
+                        cents.forEach(c => minD = Math.min(minD, Utils.distSq(p, c)));
+                        dists.push(minD);
+                        sumDist += minD;
+                    });
+
+                    let r = Math.random() * sumDist;
+                    let idx = 0;
+                    while (r > 0 && idx < dists.length) {
+                        r -= dists[idx];
+                        idx++;
+                    }
+                    cents.push(aiPoints[Math.max(0, idx - 1)]);
+                }
+
+                // Convert to objects
+                this.aiCentroids = cents.map(c => ({ x: c.x, y: c.y, history: [{ x: c.x, y: c.y }] }));
+
+                // 2. Run Algorithm Loop to convergence
+                let converged = false;
+                let iter = 0;
+
+                // We will store keyframes for animation
+                this.animFrames = [];
+
+                while (!converged && iter < 20) {
+                    // Assign
+                    let currentInertia = 0;
+                    const assignment = aiPoints.map(p => {
+                        let minD = Infinity, cIdx = -1;
+                        this.aiCentroids.forEach((c, i) => {
+                            const d = Utils.distSq(p, c);
+                            if (d < minD) { minD = d; cIdx = i; }
+                        });
+                        currentInertia += minD;
+                        return cIdx;
+                    });
+
+                    this.animFrames.push({
+                        type: 'assign',
+                        assignments: [...assignment],
+                        centroids: JSON.parse(JSON.stringify(this.aiCentroids)),
+                        inertia: currentInertia
+                    });
+
+                    // Update
+                    let maxShift = 0;
+                    const newCents = this.aiCentroids.map((c, i) => {
+                        let sumX = 0, sumY = 0, count = 0;
+                        aiPoints.forEach((p, pIdx) => {
+                            if (assignment[pIdx] === i) {
+                                sumX += p.x; sumY += p.y; count++;
+                            }
+                        });
+
+                        const target = count === 0 ? c : { x: sumX / count, y: sumY / count };
+                        maxShift = Math.max(maxShift, Utils.distSq(c, target));
+                        return target;
+                    });
+
+                    this.aiCentroids = newCents.map((c, i) => ({
+                        x: c.x, y: c.y,
+                        history: [...this.aiCentroids[i].history, { x: c.x, y: c.y }]
+                    }));
+
+                    this.animFrames.push({
+                        type: 'move',
+                        centroids: JSON.parse(JSON.stringify(this.aiCentroids))
+                    });
+
+                    if (maxShift < 1) converged = true;
+                    iter++;
+                }
+
+                this.aiInertia = this.animFrames[this.animFrames.length - 2].inertia; // Last assign frame
+
+                // Start Animation Playback
+                this.currentFrame = 0;
+                this.state = 'RUNNING';
+
+                if (manualMode) {
+                    this.setToast('Manual Stepping Mode');
+                    this.stepAI(); // Execute the first step immediately
+                } else {
+                    this.setToast('Algorithm Running...');
+                    this.playAnimation();
+                }
+            },
+
+            stepAI: function () {
+                // If we haven't calculated the path yet, do it now
+                if (this.state === 'READY' || this.state === 'FINISHED') {
+                    this.runAI(true); // Call runAI with a flag to prevent auto-play
+                    return;
+                }
+
+                if (this.state === 'RUNNING' && this.currentFrame < this.animFrames.length) {
+                    this.renderFrame(this.currentFrame);
+                    this.currentFrame++;
+
+                    if (this.currentFrame >= this.animFrames.length) {
+                        this.finishGame();
+                    }
+                }
+            },
+
+            // Refactor the frame logic into a standalone helper
+            renderFrame: function (frameIdx) {
+                const frame = this.animFrames[frameIdx];
+                if (frame.type === 'assign') {
+                    this.points.forEach((p, i) => {
+                        p.color = Utils.getClusterColor(frame.assignments[i]);
+                    });
+                    document.getElementById('disp-inertia').innerText = Math.round(frame.inertia).toLocaleString();
+                    document.getElementById('disp-inertia').style.color = 'var(--eco-red)';
+                } else {
+                    this.aiCentroids = frame.centroids;
+                }
+                this.render(true);
+            },
+
+            playAnimation: function () {
+                if (this.currentFrame >= this.animFrames.length) {
+                    this.finishGame();
+                    return;
+                }
+
+                const frame = this.animFrames[this.currentFrame];
+
+                if (frame.type === 'assign') {
+                    // Update point colors to AI view
+                    this.points.forEach((p, i) => {
+                        p.color = Utils.getClusterColor(frame.assignments[i]);
+                    });
+                    document.getElementById('disp-inertia').innerText = Math.round(frame.inertia).toLocaleString();
+                    document.getElementById('disp-inertia').style.color = 'var(--eco-red)';
+                } else {
+                    // Move centroids
+                    // We could tween here, but for now instant jump per step
+                    this.aiCentroids = frame.centroids;
+                }
+
+                this.render(true); // Force render AI centroids
+                this.currentFrame++;
+                setTimeout(() => this.playAnimation(), 400);
+            },
+
+            finishGame: function () {
+                this.state = 'FINISHED';
+                this.setToast('Comparison Complete');
+
+                // Show Comparison
+                document.getElementById('result-box').style.display = 'block';
+
+                // Calc width
+                const max = Math.max(this.userInertia, this.aiInertia) * 1.1;
+                const uW = (this.userInertia / max) * 100;
+                const aW = (this.aiInertia / max) * 100;
+
+                document.getElementById('bar-human').style.width = uW + '%';
+                document.getElementById('bar-ai').style.width = aW + '%';
+
+                const efficiency = (this.aiInertia / this.userInertia) * 100;
+                document.getElementById('text-human').innerText = efficiency.toFixed(1) + '% Optimal';
+
+                // Revert points to user view or split? Let's keep AI view as "Solution"
+            },
+
+            toggleVoronoi: function () {
+                this.showVoronoi = document.getElementById('check-voronoi').checked;
+                this.render();
+            },
+
+            render: function (showAI = false) {
+                this.renderer.clear();
+
+                // Determine which centroids to show for Voronoi
+                // If Running AI, show AI Voronoi. Else User.
+                const activeCentroids = (this.state === 'RUNNING' || showAI) ? this.aiCentroids : this.centroids;
+
+                this.renderer.drawVoronoi(activeCentroids, this.k, this.showVoronoi);
+                this.renderer.drawPoints(this.points);
+
+                const showCentroids = document.getElementById('check-centroids').checked;
+                if (showCentroids) {
+                    if (this.state === 'RUNNING' || showAI) {
+                        this.renderer.drawCentroids(this.aiCentroids, false);
+                    } else {
+                        this.renderer.drawCentroids(this.centroids, true);
+                    }
+                }
+            },
+
+            updateUI: function () {
+                // Button States
+                document.getElementById('btn-run').disabled = this.state !== 'READY';
+                document.getElementById('btn-step').disabled = this.state !== 'READY';
+                document.getElementById('result-box').style.display = 'none';
+                document.getElementById('disp-inertia').style.color = 'var(--eco-blue)';
+            },
+
+            setToast: function (msg) {
+                const t = document.getElementById('overlay-ui');
+                t.style.opacity = 0;
+                setTimeout(() => {
+                    t.innerHTML = msg;
+                    t.style.opacity = 1;
+                }, 200);
+            }
+        };
+
+        // UI Helpers
+        function updateVal(id, val) { document.getElementById(id).innerText = val; }
+
+        // Start
+        window.onload = () => Game.init();
+
+    </script>
+</body>
+
+</html>
