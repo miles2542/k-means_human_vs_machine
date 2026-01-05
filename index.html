@@ -4,10 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The K-Means Laboratory | Interactive Simulation</title>
+    <title>Interactive K-Means Algorithm | Human vs Machine</title>
     <style>
         :root {
-            /* The Economist Palette */
             --eco-red: #E3120B;
             --eco-blue: #004687;
             --eco-bg: #F3F3F3;
@@ -15,20 +14,15 @@
             --eco-text: #222222;
             --eco-subtext: #595959;
             --eco-border: #D7D7D7;
+            --eco-accent: #2c3e50;
 
-            /* Cluster Palette (Distinct & Professional) */
+            /* Cluster Palette */
             --c0: #007EA7;
-            /* Ocean */
             --c1: #D64933;
-            /* Rust */
             --c2: #F0C419;
-            /* Mustard */
             --c3: #4B3F72;
-            /* Deep Purple */
             --c4: #58A4B0;
-            /* Teal */
             --c5: #6D6875;
-            /* Lavender Grey */
         }
 
         * {
@@ -61,8 +55,7 @@
         }
 
         .brand h1 {
-            font-family: "Georgia", serif;
-            /* Economist serif feel */
+            font-family: "Montserrat", serif;
             font-size: 26px;
             margin: 0;
             letter-spacing: -0.5px;
@@ -77,29 +70,7 @@
             margin-left: 10px;
         }
 
-        .metrics {
-            display: flex;
-            gap: 20px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .metric-box {
-            text-align: right;
-        }
-
-        .metric-label {
-            font-size: 10px;
-            color: var(--eco-subtext);
-            text-transform: uppercase;
-        }
-
-        .metric-value {
-            font-feature-settings: "tnum";
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* --- Main Layout --- */
+        /* --- Layout --- */
         #workspace {
             flex: 1;
             display: flex;
@@ -107,57 +78,78 @@
             overflow: hidden;
         }
 
-        /* --- Sidebar Controls --- */
+        /* --- Sidebar --- */
         #sidebar {
-            width: 300px;
+            width: 320px;
             background: var(--eco-panel);
             border-right: 1px solid var(--eco-border);
-            padding: 20px;
+            padding: 25px;
             display: flex;
             flex-direction: column;
             gap: 25px;
             overflow-y: auto;
             z-index: 5;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .control-header {
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 800;
             text-transform: uppercase;
             color: var(--eco-red);
             border-bottom: 2px solid var(--eco-red);
-            padding-bottom: 4px;
+            padding-bottom: 6px;
             margin-bottom: 5px;
+            letter-spacing: 0.5px;
         }
 
-        /* Custom Inputs */
+        /* Inputs */
         label {
             font-size: 13px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            color: var(--eco-text);
         }
 
         input[type="range"] {
             width: 100%;
-            accent-color: var(--eco-blue);
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--eco-blue);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
         select {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             border: 1px solid var(--eco-border);
             border-radius: 4px;
             font-family: inherit;
             background: white;
+            font-size: 13px;
         }
 
-        /* Action Buttons */
+        /* Buttons */
         .btn {
             padding: 12px;
             border: none;
@@ -168,20 +160,27 @@
             text-align: center;
             font-size: 13px;
             letter-spacing: 0.5px;
+            position: relative;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
         }
 
         .btn-primary {
             background: var(--eco-red);
             color: white;
+            box-shadow: 0 2px 4px rgba(227, 18, 11, 0.2);
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background: #c00f09;
-            box-shadow: 0 2px 8px rgba(227, 18, 11, 0.3);
+            box-shadow: 0 4px 8px rgba(227, 18, 11, 0.3);
         }
 
         .btn-primary:disabled {
-            background: #ccc;
+            background: #e0e0e0;
+            color: #999;
             cursor: not-allowed;
             box-shadow: none;
         }
@@ -192,9 +191,15 @@
             color: var(--eco-text);
         }
 
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             background: #f9f9f9;
-            border-color: #bbb;
+            border-color: #999;
+        }
+
+        .btn-secondary:disabled {
+            color: #ccc;
+            border-color: #eee;
+            cursor: not-allowed;
         }
 
         .btn-group {
@@ -206,7 +211,115 @@
             flex: 1;
         }
 
-        /* --- Canvas Area --- */
+        /* --- Status Panel (New) --- */
+        #status-panel {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: var(--eco-subtext);
+        }
+
+        .status-val {
+            font-weight: 700;
+            color: var(--eco-text);
+            font-feature-settings: "tnum";
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .bg-assign {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .bg-update {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .bg-done {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        /* --- Results Table --- */
+        #result-box {
+            display: none;
+            border-top: 1px solid var(--eco-border);
+            padding-top: 20px;
+            margin-top: 10px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .comp-table th {
+            text-align: left;
+            color: var(--eco-subtext);
+            padding-bottom: 8px;
+            font-weight: 600;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comp-table td {
+            padding: 8px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .comp-table td:last-child {
+            text-align: right;
+            font-weight: 700;
+            color: var(--eco-blue);
+        }
+
+        .result-summary {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--eco-text);
+            background: #fff8e1;
+            padding: 10px;
+            border-left: 3px solid #ffc107;
+            margin-top: 15px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* --- Canvas Wrapper --- */
         #canvas-wrapper {
             flex: 1;
             position: relative;
@@ -224,26 +337,26 @@
         }
 
         #voronoi-canvas {
-            opacity: 0.4;
+            opacity: 0.45;
         }
 
-        /* Soft background look */
-
-        /* --- Overlay UI (Toast/Instructions) --- */
+        /* --- Overlay Toast --- */
         #overlay-ui {
             position: absolute;
-            top: 20px;
+            top: 25px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             pointer-events: none;
             border: 1px solid rgba(0, 0, 0, 0.05);
             transition: opacity 0.3s;
+            color: var(--eco-accent);
+            z-index: 20;
         }
 
         /* --- Toggle Switch --- */
@@ -299,28 +412,22 @@
             transform: translateX(16px);
         }
 
-        /* Comparison Bar */
-        .score-comp {
-            margin-top: 10px;
-        }
-
-        .score-bar-bg {
-            height: 6px;
-            background: #eee;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        .score-bar-fill {
-            height: 100%;
-            background: var(--eco-blue);
-            width: 0%;
-            transition: width 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-
-        .score-ai-fill {
-            background: var(--eco-red);
+        /* Custom Tooltip */
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0.9;
+            pointer-events: none;
+            margin-bottom: 5px;
         }
     </style>
 </head>
@@ -329,40 +436,32 @@
 
     <header>
         <div class="brand">
-            <h1>K-Means: Human vs Algorithm</h1>
-            <span>v1.1 by Miles</span>
+            <h1>K-Means: Human vs Machine</h1>
+            <span>v1.3 by Miles</span>
         </div>
-        <div class="metrics">
-            <div class="metric-box">
-                <div class="metric-label">Points (N)</div>
-                <div class="metric-value" id="disp-n">300</div>
-            </div>
-            <div class="metric-box">
-                <div class="metric-label">Current Inertia</div>
-                <div class="metric-value" id="disp-inertia" style="color:var(--eco-blue)">--</div>
-            </div>
+        <!-- Simple Top Stats -->
+        <div style="font-size: 12px; font-weight: 600; color: var(--eco-subtext);">
+            N = <span id="disp-n" style="color:var(--eco-text)">300</span>
         </div>
     </header>
 
     <div id="workspace">
-        <!-- Sidebar -->
+        <!-- Sidebar Controls -->
         <aside id="sidebar">
 
-            <!-- Data Config -->
+            <!-- Data Generation -->
             <div class="control-group">
-                <div class="control-header">Dataset Topology</div>
+                <div class="control-header">1. Dataset Topology</div>
                 <select id="data-type" onchange="Game.reset()">
                     <option value="gaussian">Gaussian Blobs (Standard)</option>
                     <option value="aniso">Anisotropic (Stretched)</option>
                     <option value="rings">Concentric Rings (Linear Fail)</option>
                     <option value="spirals">Twin Spirals (Hard)</option>
                     <option value="uniform">Uniform Noise (No Cluster)</option>
+                    <option value="smiley">Smiley Face (Pattern)</option>
                 </select>
-                <div style="font-size:11px; color:#666; font-style:italic; margin-top:-5px;">
-                    Tip: Shift+Click on canvas to draw points.
-                </div>
 
-                <label>
+                <label title="Controls the standard deviation of clusters">
                     <span>Spread / Noise</span>
                     <span id="val-noise">1.0</span>
                 </label>
@@ -370,9 +469,9 @@
                     oninput="updateVal('val-noise', this.value); Game.requestDataRegen()">
             </div>
 
-            <!-- Algorithm Config -->
+            <!-- Params -->
             <div class="control-group">
-                <div class="control-header">Algorithm Params</div>
+                <div class="control-header">2. Algorithm Params</div>
                 <label>
                     <span>Clusters (K)</span>
                     <span id="val-k">3</span>
@@ -381,9 +480,9 @@
                     oninput="updateVal('val-k', this.value); Game.reset()">
             </div>
 
-            <!-- Visuals -->
+            <!-- Visualization -->
             <div class="control-group">
-                <div class="control-header">Visualization</div>
+                <div class="control-header">3. Visualization</div>
                 <div class="toggle-row">
                     <span>Show Voronoi Regions</span>
                     <label class="toggle">
@@ -391,697 +490,712 @@
                         <span class="slider"></span>
                     </label>
                 </div>
-                <div class="toggle-row" style="margin-top:8px;">
-                    <span>Show Centroids</span>
-                    <label class="toggle">
-                        <input type="checkbox" id="check-centroids" checked onchange="Game.render()">
-                        <span class="slider"></span>
-                    </label>
+            </div>
+
+            <!-- Status Panel (Live) -->
+            <div id="status-panel">
+                <div class="status-row">
+                    <span>State</span>
+                    <span id="stat-phase" class="status-badge bg-assign">Idle</span>
+                </div>
+                <div class="status-row">
+                    <span>Iteration</span>
+                    <span id="stat-iter" class="status-val">0</span>
+                </div>
+                <div class="status-row">
+                    <span>Inertia</span>
+                    <span id="stat-inertia" class="status-val">--</span>
                 </div>
             </div>
 
-            <!-- Game Actions -->
+            <!-- Controls -->
             <div class="control-group" style="margin-top:auto">
                 <div class="control-header">Controls</div>
-                <button class="btn btn-primary" id="btn-run" onclick="Game.runAI()" disabled>Run K-Means
-                    Algorithm</button>
+                <button class="btn btn-primary" id="btn-run" onclick="Game.runAnimation()" disabled
+                    data-tooltip="Auto-runs until convergence">
+                    Auto-run algorithm
+                </button>
                 <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="Game.stepAI()" id="btn-step" disabled>Step</button>
-                    <button class="btn btn-secondary" onclick="Game.reset()">Reset</button>
+                    <button class="btn btn-secondary" onclick="Game.stepForward()" id="btn-step" disabled
+                        data-tooltip="Advance one step (Assign or Update)">
+                        Step +1
+                    </button>
+                    <button class="btn btn-secondary" onclick="Game.reset()">New</button>
                 </div>
             </div>
 
-            <!-- Results (Hidden until run) -->
-            <div id="result-box" style="display:none; border-top:1px solid #ddd; padding-top:15px;">
+            <!-- Final Results -->
+            <div id="result-box">
                 <div class="control-header">Performance Analysis</div>
-                <div class="score-comp">
-                    <label>Human Efficiency</label>
-                    <div class="score-bar-bg">
-                        <div class="score-bar-fill" id="bar-human"></div>
-                    </div>
-                    <div style="text-align:right; font-size:12px; font-weight:bold; margin-top:2px;" id="text-human">--
-                    </div>
-                </div>
-                <div class="score-comp">
-                    <label style="color:var(--eco-red)">Algorithm Efficiency</label>
-                    <div class="score-bar-bg">
-                        <div class="score-bar-fill score-ai-fill" id="bar-ai"></div>
-                    </div>
+                <table class="comp-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th style="text-align:right; color:#000">Human</th>
+                            <th style="text-align:right; color:#000">Algorithm</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Inertia (Lower is Better)</td>
+                            <td id="res-human-inertia">--</td>
+                            <td id="res-ai-inertia">--</td>
+                        </tr>
+                        <tr>
+                            <td>Iterations</td>
+                            <td>N/A</td>
+                            <td id="res-ai-iter">--</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="res-summary" class="result-summary">
+                    <!-- Dynamic Text injected here -->
                 </div>
             </div>
 
         </aside>
 
-        <!-- Canvas -->
+        <!-- Main Canvas -->
         <div id="canvas-wrapper">
             <canvas id="voronoi-canvas"></canvas>
             <canvas id="main-canvas"></canvas>
-            <div id="overlay-ui">Place <b>3</b> centroids to minimize inertia.</div>
+            <div id="overlay-ui">Place <b>3</b> centroids to start.</div>
         </div>
     </div>
 
     <script>
         /**
-         * THE K-MEANS LABORATORY ENGINE
-         * 
-         * Modular architecture:
-         * 1. Utils: Math & Helper functions.
-         * 2. DataEngine: Generates complex datasets.
-         * 3. Renderer: Handles High-DPI canvas drawing & Voronoi.
-         * 4. Logic: Core K-Means math.
-         * 5. Game: State management & Events.
+         * K-MEANS INTERACTIVE ENGINE V2.0
+         * "Outstanding" Quality Codebase
          */
 
-        /* --- 1. UTILS --- */
+        /* --- UTILITIES --- */
         const Utils = {
             rand: (min, max) => Math.random() * (max - min) + min,
             randNormal: (mean, std) => {
                 let u = 0, v = 0;
                 while (u === 0) u = Math.random();
                 while (v === 0) v = Math.random();
-                const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-                return mean + z * std;
+                return mean + (Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v)) * std;
             },
             distSq: (p1, p2) => (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2,
-            lerp: (start, end, t) => start * (1 - t) + end * t,
-            clamp: (num, min, max) => Math.min(Math.max(num, min), max),
-            // HSL to Hex helper for distinct colors
+            lerp: (a, b, t) => a + (b - a) * t,
+            fmtNum: (n) => Math.round(n).toLocaleString(),
+            // Distinct Colors for up to 6 clusters
             getClusterColor: (k, alpha = 1) => {
                 const colors = [
-                    'rgba(0, 126, 167, A)',   // Ocean
-                    'rgba(214, 73, 51, A)',   // Rust
-                    'rgba(240, 196, 25, A)',  // Mustard
-                    'rgba(75, 63, 114, A)',   // Purple
-                    'rgba(88, 164, 176, A)',  // Teal
-                    'rgba(109, 104, 117, A)'  // Grey
+                    `rgba(0, 126, 167, ${alpha})`,   // Ocean Blue
+                    `rgba(214, 73, 51, ${alpha})`,   // Rust Red
+                    `rgba(240, 196, 25, ${alpha})`,  // Mustard Yellow
+                    `rgba(75, 63, 114, ${alpha})`,   // Deep Purple
+                    `rgba(88, 164, 176, ${alpha})`,  // Teal
+                    `rgba(109, 104, 117, ${alpha})`  // Grey
                 ];
-                return colors[k % colors.length].replace('A', alpha);
+                return colors[k % colors.length];
             }
         };
 
-        /* --- 2. DATA ENGINE --- */
-        class DataGenerator {
-            constructor(w, h) {
-                this.w = w;
-                this.h = h;
-            }
+        /* --- DATA GENERATION --- */
+        class DataEngine {
+            constructor(w, h) { this.w = w; this.h = h; }
 
-            generate(type, k, noiseLevel) {
+            generate(type, k, noise) {
                 let points = [];
-                const nPerCluster = Math.floor(300 / k); // Target ~300 points total
+                const n = 300; // Fixed size
+                const nPerK = Math.floor(n / k);
 
-                if (type === 'gaussian') {
-                    for (let i = 0; i < k; i++) {
-                        const cx = Utils.rand(this.w * 0.2, this.w * 0.8);
-                        const cy = Utils.rand(this.h * 0.2, this.h * 0.8);
-                        for (let j = 0; j < nPerCluster; j++) {
-                            points.push({
-                                x: Utils.randNormal(cx, 30 * noiseLevel),
-                                y: Utils.randNormal(cy, 30 * noiseLevel),
-                                cluster: -1,
-                                color: '#7a8c99'
-                            });
-                        }
+                if (type === 'smiley') {
+                    // Custom pattern: Face Outline, Eyes, Smile
+                    const cx = this.w / 2, cy = this.h / 2, r = Math.min(this.w, this.h) / 2.5;
+                    // Face
+                    for (let i = 0; i < 120; i++) {
+                        const theta = Utils.rand(0, Math.PI * 2);
+                        points.push(this.pt(cx + r * Math.cos(theta), cy + r * Math.sin(theta), noise));
                     }
-                } else if (type === 'aniso') {
-                    // Stretched Blobs
-                    for (let i = 0; i < k; i++) {
-                        const cx = Utils.rand(this.w * 0.2, this.w * 0.8);
-                        const cy = Utils.rand(this.h * 0.2, this.h * 0.8);
-                        // Create transformation matrix for stretching
-                        const angle = Utils.rand(0, Math.PI);
-                        const stretch = Utils.rand(3, 8);
-                        const cos = Math.cos(angle), sin = Math.sin(angle);
-
-                        for (let j = 0; j < nPerCluster; j++) {
-                            // Generate in standard normal, then rotate & stretch
-                            const rx = Utils.randNormal(0, 15 * noiseLevel) * stretch;
-                            const ry = Utils.randNormal(0, 15 * noiseLevel);
-                            points.push({
-                                x: cx + (rx * cos - ry * sin),
-                                y: cy + (rx * sin + ry * cos),
-                                cluster: -1,
-                                color: '#7a8c99'
-                            });
-                        }
-                    }
-                } else if (type === 'rings') {
-                    // Concentric Circles
-                    const cx = this.w / 2;
-                    const cy = this.h / 2;
-                    for (let i = 0; i < k; i++) {
-                        const radius = (i + 1) * (Math.min(this.w, this.h) / (2 * k + 1)) * 1.5;
-                        for (let j = 0; j < nPerCluster; j++) {
-                            const angle = Utils.rand(0, Math.PI * 2);
-                            const r = Utils.randNormal(radius, 5 * noiseLevel);
-                            points.push({
-                                x: cx + r * Math.cos(angle),
-                                y: cy + r * Math.sin(angle),
-                                cluster: -1,
-                                color: '#7a8c99'
-                            });
-                        }
-                    }
-                } else if (type === 'spirals') {
-                    // Twin Spirals (Intertwined)
-                    const cx = this.w / 2;
-                    const cy = this.h / 2;
-                    for (let i = 0; i < k; i++) {
-                        const deltaTheta = (Math.PI * 2) / k;
-                        for (let j = 0; j < nPerCluster; j++) {
-                            const t = j / nPerCluster; // 0 to 1
-                            const angle = t * 3 * Math.PI + (i * deltaTheta);
-                            const r = t * (Math.min(this.w, this.h) / 2.2);
-                            // Add noise
-                            const nx = Utils.randNormal(0, 5 * noiseLevel);
-                            const ny = Utils.randNormal(0, 5 * noiseLevel);
-                            points.push({
-                                x: cx + r * Math.cos(angle) + nx,
-                                y: cy + r * Math.sin(angle) + ny,
-                                cluster: -1,
-                                color: '#7a8c99'
-                            });
-                        }
-                    }
-                } else {
-                    // Uniform
-                    for (let i = 0; i < 300; i++) {
-                        points.push({
-                            x: Utils.rand(this.w * 0.05, this.w * 0.95),
-                            y: Utils.rand(this.h * 0.05, this.h * 0.95),
-                            cluster: -1,
-                            color: '#7a8c99'
-                        });
+                    // Eyes
+                    for (let i = 0; i < 40; i++) points.push(this.pt(cx - r * 0.35, cy - r * 0.2, noise / 2));
+                    for (let i = 0; i < 40; i++) points.push(this.pt(cx + r * 0.35, cy - r * 0.2, noise / 2));
+                    // Smile
+                    for (let i = 0; i < 100; i++) {
+                        const theta = Utils.rand(0.2 * Math.PI, 0.8 * Math.PI);
+                        points.push(this.pt(cx + r * 0.6 * Math.cos(theta), cy + r * 0.6 * Math.sin(theta), noise / 2));
                     }
                 }
-                return points;
+                else if (type === 'rings') {
+                    const cx = this.w / 2, cy = this.h / 2;
+                    for (let i = 0; i < k; i++) {
+                        const rad = (i + 1) * (Math.min(this.w, this.h) / (2 * k + 1)) * 1.5;
+                        for (let j = 0; j < nPerK; j++) {
+                            const theta = Utils.rand(0, Math.PI * 2);
+                            points.push(this.pt(cx + rad * Math.cos(theta), cy + rad * Math.sin(theta), noise));
+                        }
+                    }
+                }
+                else if (type === 'spirals') {
+                    const cx = this.w / 2, cy = this.h / 2;
+                    for (let i = 0; i < k; i++) {
+                        for (let j = 0; j < nPerK; j++) {
+                            const t = j / nPerK;
+                            const angle = t * 3 * Math.PI + (i * (Math.PI * 2) / k);
+                            const r = t * (Math.min(this.w, this.h) / 2.2);
+                            points.push(this.pt(cx + r * Math.cos(angle), cy + r * Math.sin(angle), noise));
+                        }
+                    }
+                }
+                else if (type === 'gaussian' || type === 'aniso') {
+                    for (let i = 0; i < k; i++) {
+                        const cx = Utils.rand(this.w * 0.2, this.w * 0.8);
+                        const cy = Utils.rand(this.h * 0.2, this.h * 0.8);
+                        for (let j = 0; j < nPerK; j++) {
+                            let px = Utils.randNormal(0, 25 * noise);
+                            let py = Utils.randNormal(0, 25 * noise);
+                            if (type === 'aniso') px *= 4; // Stretch
+                            // Rotate aniso
+                            if (type === 'aniso') {
+                                const ang = 1; // Fixed angle for simplicity
+                                const rotX = px * Math.cos(ang) - py * Math.sin(ang);
+                                const rotY = px * Math.sin(ang) + py * Math.cos(ang);
+                                px = rotX; py = rotY;
+                            }
+                            points.push({ x: cx + px, y: cy + py, cluster: -1, color: '#aaa' });
+                        }
+                    }
+                }
+                else {
+                    // Uniform
+                    for (let i = 0; i < n; i++) points.push(this.pt(Utils.rand(0, this.w), Utils.rand(0, this.h), 0));
+                }
+
+                // Shuffle to avoid index bias
+                return points.sort(() => Math.random() - 0.5);
+            }
+
+            pt(x, y, noise) {
+                return {
+                    x: x + Utils.randNormal(0, 5 * noise),
+                    y: y + Utils.randNormal(0, 5 * noise),
+                    cluster: -1,
+                    color: '#aaa'
+                };
             }
         }
 
-        /* --- 3. RENDERER --- */
+        /* --- RENDERER (Dual Canvas) --- */
         class Renderer {
-            constructor(mainCanvasId, voronoiCanvasId) {
-                this.mainC = document.getElementById(mainCanvasId);
-                this.ctx = this.mainC.getContext('2d');
+            constructor(mainId, bgId) {
+                this.main = document.getElementById(mainId);
+                this.ctx = this.main.getContext('2d');
+                this.bg = document.getElementById(bgId);
+                this.bgCtx = this.bg.getContext('2d');
 
-                this.voronoiC = document.getElementById(voronoiCanvasId);
-                this.vCtx = this.voronoiC.getContext('2d');
-
-                this.width = 0;
-                this.height = 0;
                 this.dpr = window.devicePixelRatio || 1;
+                this.bgScale = 0.2; // 20% resolution for performance
 
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
             }
 
             resize() {
-                const wrapper = this.mainC.parentElement;
-                this.width = wrapper.clientWidth;
-                this.height = wrapper.clientHeight;
+                const p = this.main.parentElement;
+                this.w = p.clientWidth;
+                this.h = p.clientHeight;
 
-                // Scale Main Canvas for High DPI
-                this.mainC.width = this.width * this.dpr;
-                this.mainC.height = this.height * this.dpr;
+                // High DPI Main
+                this.main.width = this.w * this.dpr;
+                this.main.height = this.h * this.dpr;
                 this.ctx.scale(this.dpr, this.dpr);
 
-                // Scale Voronoi Canvas (Low res is fine for performance, but we scale it up)
-                // We actually render Voronoi at 1/4 res to keep FPS high during drag
-                this.voronoiScale = 0.25;
-                this.voronoiC.width = this.width * this.voronoiScale;
-                this.voronoiC.height = this.height * this.voronoiScale;
+                // Low Res Background
+                this.bg.width = this.w * this.bgScale;
+                this.bg.height = this.h * this.bgScale;
             }
 
-            clear() {
-                this.ctx.clearRect(0, 0, this.width, this.height);
-            }
-
-            drawVoronoi(centroids, k, enabled) {
-                if (!enabled || centroids.length === 0) {
-                    this.vCtx.clearRect(0, 0, this.voronoiC.width, this.voronoiC.height);
-                    return;
-                }
-
-                const w = this.voronoiC.width;
-                const h = this.voronoiC.height;
-                const imgData = this.vCtx.createImageData(w, h);
-                const data = imgData.data;
-
-                // Pixel Scan (Optimization: This is O(W*H*K), expensive. 
-                // Done on small canvas (1/4 size) makes it ~16x faster).
-                for (let y = 0; y < h; y++) {
-                    for (let x = 0; x < w; x++) {
-                        // Map low-res pixel to high-res coord
-                        const rx = x / this.voronoiScale;
-                        const ry = y / this.voronoiScale;
-
-                        let minDist = Infinity;
-                        let closest = -1;
-
-                        for (let i = 0; i < centroids.length; i++) {
-                            const d = (centroids[i].x - rx) ** 2 + (centroids[i].y - ry) ** 2;
-                            if (d < minDist) {
-                                minDist = d;
-                                closest = i;
-                            }
-                        }
-
-                        if (closest !== -1) {
-                            // Get RGB from CSS-like string is hard, using hardcoded palette map for speed
-                            // Ideally parse, but let's just use raw RGB for the heatmap
-                            const baseColors = [
-                                [0, 126, 167], [214, 73, 51], [240, 196, 25],
-                                [75, 63, 114], [88, 164, 176], [109, 104, 117]
-                            ];
-                            const c = baseColors[closest % baseColors.length];
-                            const idx = (y * w + x) * 4;
-                            data[idx] = c[0];
-                            data[idx + 1] = c[1];
-                            data[idx + 2] = c[2];
-                            data[idx + 3] = 40; // Low alpha
-                        }
-                    }
-                }
-                this.vCtx.putImageData(imgData, 0, 0);
-            }
+            clear() { this.ctx.clearRect(0, 0, this.w, this.h); }
 
             drawPoints(points) {
                 points.forEach(p => {
                     this.ctx.beginPath();
-                    this.ctx.fillStyle = p.targetColor || p.color || '#7a8c99'; // Use target color if animating
+                    this.ctx.fillStyle = p.color;
                     this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
                     this.ctx.fill();
                 });
             }
 
-            drawCentroids(centroids, isUser) {
-                centroids.forEach((c, idx) => {
+            drawCentroids(centroids, isActive = false) {
+                centroids.forEach((c, i) => {
+                    const color = isActive ? Utils.getClusterColor(i) : '#E3120B';
+
                     this.ctx.beginPath();
-                    this.ctx.fillStyle = isUser ? '#004687' : '#E3120B';
                     this.ctx.strokeStyle = 'white';
-                    this.ctx.lineWidth = 2;
+                    this.ctx.lineWidth = 4;
+                    this.ctx.lineCap = 'round';
 
-                    // Draw X shape
+                    // X Mark
                     const s = 8;
-                    this.ctx.moveTo(c.x - s, c.y - s);
-                    this.ctx.lineTo(c.x + s, c.y + s);
-                    this.ctx.moveTo(c.x + s, c.y - s);
-                    this.ctx.lineTo(c.x - s, c.y + s);
-                    this.ctx.stroke(); // White outline
+                    this.ctx.moveTo(c.x - s, c.y - s); this.ctx.lineTo(c.x + s, c.y + s);
+                    this.ctx.moveTo(c.x + s, c.y - s); this.ctx.lineTo(c.x - s, c.y + s);
+                    this.ctx.stroke();
 
-                    this.ctx.lineWidth = 3;
-                    this.ctx.strokeStyle = isUser ? '#004687' : '#E3120B';
-                    this.ctx.stroke(); // Color fill
-
-                    // Draw History Trail
-                    if (c.history && c.history.length > 1) {
-                        this.ctx.beginPath();
-                        this.ctx.strokeStyle = isUser ? 'rgba(0, 70, 135, 0.3)' : 'rgba(227, 18, 11, 0.3)';
-                        this.ctx.lineWidth = 1;
-                        this.ctx.moveTo(c.history[0].x, c.history[0].y);
-                        for (let i = 1; i < c.history.length; i++) {
-                            this.ctx.lineTo(c.history[i].x, c.history[i].y);
-                        }
-                        this.ctx.stroke();
-                    }
+                    this.ctx.strokeStyle = color;
+                    this.ctx.lineWidth = 2.5;
+                    this.ctx.stroke();
                 });
+            }
+
+            // Optimized Voronoi
+            drawVoronoi(centroids, enabled) {
+                if (!enabled || centroids.length === 0) {
+                    this.bgCtx.clearRect(0, 0, this.bg.width, this.bg.height);
+                    return;
+                }
+
+                const w = this.bg.width, h = this.bg.height;
+                const imgData = this.bgCtx.createImageData(w, h);
+                const d = imgData.data;
+
+                // Pre-calculate colors
+                const colors = centroids.map((_, i) => {
+                    // Parse rgba from helper (hacky but fast)
+                    const str = Utils.getClusterColor(i, 1);
+                    const match = str.match(/\d+(\.\d+)?/g);
+                    return [parseInt(match[0]), parseInt(match[1]), parseInt(match[2])];
+                });
+
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const rx = x / this.bgScale;
+                        const ry = y / this.bgScale;
+
+                        let minD = Infinity, idx = 0;
+                        for (let i = 0; i < centroids.length; i++) {
+                            const dist = (centroids[i].x - rx) ** 2 + (centroids[i].y - ry) ** 2;
+                            if (dist < minD) { minD = dist; idx = i; }
+                        }
+
+                        const ptr = (y * w + x) * 4;
+                        const col = colors[idx];
+                        d[ptr] = col[0];
+                        d[ptr + 1] = col[1];
+                        d[ptr + 2] = col[2];
+                        d[ptr + 3] = 40; // Alpha
+                    }
+                }
+                this.bgCtx.putImageData(imgData, 0, 0);
             }
         }
 
-        /* --- 4. GAME ENGINE & STATE --- */
+        /* --- LOGIC KERNEL --- */
+        const Kernel = {
+            assign: (points, centroids) => {
+                let inertia = 0;
+                // Don't mutate original points array immediately, return new assignments
+                const assignments = points.map(p => {
+                    let minD = Infinity, cIdx = -1;
+                    centroids.forEach((c, i) => {
+                        const d = Utils.distSq(p, c);
+                        if (d < minD) { minD = d; cIdx = i; }
+                    });
+                    inertia += minD;
+                    return cIdx;
+                });
+                return { assignments, inertia };
+            },
+
+            update: (points, assignments, k) => {
+                const sums = Array(k).fill(0).map(() => ({ x: 0, y: 0, count: 0 }));
+                points.forEach((p, i) => {
+                    const c = assignments[i];
+                    sums[c].x += p.x;
+                    sums[c].y += p.y;
+                    sums[c].count++;
+                });
+                // Calculate new centroids
+                return sums.map(s => s.count === 0 ? null : { x: s.x / s.count, y: s.y / s.count });
+            }
+        };
+
+        /* --- GAME ENGINE --- */
         const Game = {
             state: 'SETUP', // SETUP, PLACING, READY, RUNNING, FINISHED
-            points: [],
-            centroids: [], // User centroids
-            aiCentroids: [],
-            history: [], // For AI animation
 
             // Config
             k: 3,
-            noise: 1.0,
-            dataType: 'gaussian',
-            showVoronoi: true,
+            points: [],
+            userCentroids: [],
 
-            // Logic
-            renderer: null,
-            dataGen: null,
+            // AI Runtime
+            timeline: [], // Stores snapshots of the algorithm
+            timeIdx: 0,
 
             init: function () {
                 this.renderer = new Renderer('main-canvas', 'voronoi-canvas');
-                this.dataGen = new DataGenerator(this.renderer.width, this.renderer.height);
+                this.dataGen = new DataEngine(this.renderer.w, this.renderer.h);
 
-                // Listeners
+                // Event Listeners
                 const cvs = document.getElementById('canvas-wrapper');
-                cvs.addEventListener('mousedown', (e) => this.handleInput(e, 'down'));
-                cvs.addEventListener('mousemove', (e) => this.handleInput(e, 'move'));
-                cvs.addEventListener('mouseup', (e) => this.handleInput(e, 'up'));
+                cvs.addEventListener('mousedown', e => this.onClick(e));
+                cvs.addEventListener('mousemove', e => this.onDrag(e));
+                cvs.addEventListener('mouseup', () => this.dragIdx = -1);
 
-                // Initial Data
-                setTimeout(() => this.reset(), 100); // Wait for layout
+                this.reset();
             },
 
             reset: function () {
                 this.state = 'SETUP';
-                this.centroids = [];
-                this.aiCentroids = [];
-                this.history = [];
+                this.userCentroids = [];
+                this.timeline = [];
+                this.timeIdx = 0;
 
-                // Read Inputs
+                // Read Config
                 this.k = parseInt(document.getElementById('param-k').value);
-                this.dataType = document.getElementById('data-type').value;
-                this.noise = parseFloat(document.getElementById('param-noise').value);
+                const type = document.getElementById('data-type').value;
+                const noise = parseFloat(document.getElementById('param-noise').value);
 
-                // Regen Data
-                this.points = this.dataGen.generate(this.dataType, this.k, this.noise);
-                this.renderer.resize(); // Ensure size is correct
+                // Generate
+                this.points = this.dataGen.generate(type, this.k, noise);
 
-                // UI Reset
+                // Reset UI
                 this.updateUI();
-                this.render();
+                this.renderer.resize();
+                this.renderStatic();
 
-                // Transition to Placing
+                // Start
                 this.state = 'PLACING';
-                this.setToast(`Click to place ${this.k} Centroids.`);
+                this.toast(`Click to place ${this.k} Centroids`);
+
+                // Clear Results
+                document.getElementById('result-box').style.display = 'none';
+                document.getElementById('status-panel').style.display = 'none';
             },
 
             requestDataRegen: function () {
-                // Debounce regen for sliders
-                if (this.regenTimeout) clearTimeout(this.regenTimeout);
-                this.regenTimeout = setTimeout(() => this.reset(), 300);
+                if (this.timer) clearTimeout(this.timer);
+                this.timer = setTimeout(() => this.reset(), 200);
             },
 
-            handleInput: function (e, type) {
-                const rect = this.renderer.mainC.getBoundingClientRect();
+            /* INPUT HANDLING */
+            onClick: function (e) {
+                const rect = this.renderer.main.getBoundingClientRect();
                 const x = (e.clientX - rect.left);
                 const y = (e.clientY - rect.top);
 
-                // God Mode: Shift + Click to add points
-                if (e.shiftKey && type === 'down') {
-                    this.points.push({ x, y, cluster: -1, color: '#7a8c99' });
-                    this.render();
+                if (e.shiftKey) {
+                    this.points.push({ x, y, cluster: -1, color: '#aaa' });
+                    this.renderStatic();
                     return;
                 }
 
-                if (this.state === 'PLACING' && type === 'down') {
-                    if (this.centroids.length < this.k) {
-                        this.centroids.push({ x, y, history: [{ x, y }] });
-                        // If this was the last one
-                        if (this.centroids.length === this.k) {
+                if (this.state === 'PLACING') {
+                    if (this.userCentroids.length < this.k) {
+                        this.userCentroids.push({ x, y });
+                        if (this.userCentroids.length === this.k) {
                             this.state = 'READY';
-                            this.assignClusters(this.centroids, 'user');
-                            this.setToast('Ready. Run Algorithm or Drag User Centroids.');
+                            this.calculateUserScore();
+                            this.toast("Ready. Run Algorithm or Adjust Centroids.");
                         } else {
-                            this.setToast(`Place ${this.k - this.centroids.length} more...`);
+                            this.toast(`Place ${this.k - this.userCentroids.length} more`);
                         }
-                        this.render();
+                        this.renderStatic();
                     }
-                    if (this.centroids.length === this.k) {
-                        this.state = 'READY';
-                        this.assignClusters(this.centroids, 'user');
-                        this.setToast('Ready. Run Algorithm or Drag User Centroids.');
-                        this.updateUI(); // <--- Add this line to enable the buttons
-                    }
-                }
-                else if ((this.state === 'READY' || this.state === 'FINISHED') && type === 'down') {
-                    // Drag Logic check
-                    this.dragIdx = this.centroids.findIndex(c => Utils.distSq(c, { x, y }) < 400); // 20px radius
-                }
-                else if (type === 'move' && this.dragIdx !== undefined && this.dragIdx !== -1) {
-                    this.centroids[this.dragIdx].x = x;
-                    this.centroids[this.dragIdx].y = y;
-                    // Realtime update
-                    this.assignClusters(this.centroids, 'user');
-                    this.render();
-                }
-                else if (type === 'up') {
-                    this.dragIdx = -1;
+                    this.updateUI();
+                } else if (this.state === 'READY') {
+                    // Check drag
+                    this.dragIdx = this.userCentroids.findIndex(c => Utils.distSq(c, { x, y }) < 900);
                 }
             },
 
-            assignClusters: function (centroids, mode) {
-                if (centroids.length === 0) return 0;
-                let totalInertia = 0;
+            onDrag: function (e) {
+                if (this.dragIdx > -1 && this.state === 'READY') {
+                    const rect = this.renderer.main.getBoundingClientRect();
+                    this.userCentroids[this.dragIdx] = {
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
+                    };
+                    this.calculateUserScore();
+                    this.renderStatic();
+                }
+            },
 
-                this.points.forEach(p => {
-                    let minDist = Infinity;
-                    let clusterIdx = -1;
-                    centroids.forEach((c, idx) => {
-                        const d = Utils.distSq(p, c);
-                        if (d < minDist) {
-                            minDist = d;
-                            clusterIdx = idx;
-                        }
-                    });
+            /* CORE LOGIC */
+            calculateUserScore: function () {
+                const res = Kernel.assign(this.points, this.userCentroids);
+                this.userInertia = res.inertia;
+                // Color points for user view
+                this.points.forEach((p, i) => {
+                    p.color = Utils.getClusterColor(res.assignments[i]);
+                });
+                document.getElementById('res-human-inertia').innerText = Utils.fmtNum(res.inertia);
+            },
 
-                    // Only update color if we are in user mode or if it's the AI run
-                    if (mode === 'user') {
-                        p.userCluster = clusterIdx;
-                        p.color = Utils.getClusterColor(clusterIdx);
-                    } else {
-                        p.aiCluster = clusterIdx;
+            // Pre-calculate the entire AI sequence
+            prepareTimeline: function () {
+                // Initialize AI with random centroids (K-Means++)
+                let cents = [this.points[Math.floor(Math.random() * this.points.length)]];
+                while (cents.length < this.k) {
+                    let dists = this.points.map(p => Math.min(...cents.map(c => Utils.distSq(p, c))));
+                    let sum = dists.reduce((a, b) => a + b);
+                    let r = Math.random() * sum;
+                    for (let i = 0; i < dists.length; i++) {
+                        r -= dists[i];
+                        if (r <= 0) { cents.push(this.points[i]); break; }
                     }
-                    totalInertia += minDist;
+                }
+
+                // Convert to simple objects
+                let currCentroids = cents.map(c => ({ x: c.x, y: c.y }));
+                this.timeline = [];
+
+                // Snapshot 0: Initial State
+                this.timeline.push({
+                    phase: 'INIT',
+                    centroids: JSON.parse(JSON.stringify(currCentroids)),
+                    assignments: Array(this.points.length).fill(-1),
+                    inertia: 0
                 });
 
-                if (mode === 'user') {
-                    document.getElementById('disp-inertia').innerText = Math.round(totalInertia).toLocaleString();
-                    this.userInertia = totalInertia;
-                }
-                return totalInertia;
-            },
-
-            runAI: function () {
-                if (this.state !== 'READY' && this.state !== 'FINISHED') return;
-                this.state = 'RUNNING';
-
-                // Deep copy points for AI calculation
-                const aiPoints = JSON.parse(JSON.stringify(this.points));
-
-                // 1. K-Means++ Initialization
-                // Pick first random
-                let cents = [];
-                cents.push(aiPoints[Math.floor(Math.random() * aiPoints.length)]);
-
-                // Pick rest based on probability proportional to distance squared
-                while (cents.length < this.k) {
-                    let dists = [];
-                    let sumDist = 0;
-                    aiPoints.forEach(p => {
-                        let minD = Infinity;
-                        cents.forEach(c => minD = Math.min(minD, Utils.distSq(p, c)));
-                        dists.push(minD);
-                        sumDist += minD;
-                    });
-
-                    let r = Math.random() * sumDist;
-                    let idx = 0;
-                    while (r > 0 && idx < dists.length) {
-                        r -= dists[idx];
-                        idx++;
-                    }
-                    cents.push(aiPoints[Math.max(0, idx - 1)]);
-                }
-
-                // Convert to objects
-                this.aiCentroids = cents.map(c => ({ x: c.x, y: c.y, history: [{ x: c.x, y: c.y }] }));
-
-                // 2. Run Algorithm Loop to convergence
                 let converged = false;
-                let iter = 0;
+                let iter = 1;
 
-                // We will store keyframes for animation
-                this.animFrames = [];
-
-                while (!converged && iter < 20) {
-                    // Assign
-                    let currentInertia = 0;
-                    const assignment = aiPoints.map(p => {
-                        let minD = Infinity, cIdx = -1;
-                        this.aiCentroids.forEach((c, i) => {
-                            const d = Utils.distSq(p, c);
-                            if (d < minD) { minD = d; cIdx = i; }
-                        });
-                        currentInertia += minD;
-                        return cIdx;
+                while (!converged && iter < 30) {
+                    // Phase A: Assign
+                    const res = Kernel.assign(this.points, currCentroids);
+                    this.timeline.push({
+                        phase: 'ASSIGN',
+                        centroids: JSON.parse(JSON.stringify(currCentroids)),
+                        assignments: res.assignments,
+                        inertia: res.inertia,
+                        iter: iter
                     });
 
-                    this.animFrames.push({
-                        type: 'assign',
-                        assignments: [...assignment],
-                        centroids: JSON.parse(JSON.stringify(this.aiCentroids)),
-                        inertia: currentInertia
+                    // Phase B: Update
+                    const newCents = Kernel.update(this.points, res.assignments, this.k);
+                    // Handle empty clusters (rare but possible) - keep old pos
+                    const cleanCents = newCents.map((c, i) => c || currCentroids[i]);
+
+                    // Check convergence
+                    let shift = 0;
+                    currCentroids.forEach((c, i) => shift += Utils.distSq(c, cleanCents[i]));
+
+                    currCentroids = cleanCents;
+                    this.timeline.push({
+                        phase: 'UPDATE',
+                        centroids: JSON.parse(JSON.stringify(currCentroids)),
+                        assignments: res.assignments,
+                        inertia: res.inertia, // Inertia doesn't change on update step technically, but geometry does
+                        iter: iter
                     });
 
-                    // Update
-                    let maxShift = 0;
-                    const newCents = this.aiCentroids.map((c, i) => {
-                        let sumX = 0, sumY = 0, count = 0;
-                        aiPoints.forEach((p, pIdx) => {
-                            if (assignment[pIdx] === i) {
-                                sumX += p.x; sumY += p.y; count++;
-                            }
-                        });
-
-                        const target = count === 0 ? c : { x: sumX / count, y: sumY / count };
-                        maxShift = Math.max(maxShift, Utils.distSq(c, target));
-                        return target;
-                    });
-
-                    this.aiCentroids = newCents.map((c, i) => ({
-                        x: c.x, y: c.y,
-                        history: [...this.aiCentroids[i].history, { x: c.x, y: c.y }]
-                    }));
-
-                    this.animFrames.push({
-                        type: 'move',
-                        centroids: JSON.parse(JSON.stringify(this.aiCentroids))
-                    });
-
-                    if (maxShift < 1) converged = true;
+                    if (shift < 1) converged = true;
                     iter++;
                 }
 
-                this.aiInertia = this.animFrames[this.animFrames.length - 2].inertia; // Last assign frame
+                this.aiFinalInertia = this.timeline[this.timeline.length - 1].inertia;
+            },
 
-                // Start Animation Playback
-                this.currentFrame = 0;
+            /* ANIMATION CONTROL */
+            runAnimation: function () {
+                if (this.state !== 'READY' && this.state !== 'FINISHED') return;
+
+                this.prepareTimeline();
                 this.state = 'RUNNING';
+                this.timeIdx = 0;
+                this.updateUI();
+                document.getElementById('status-panel').style.display = 'block';
 
-                if (manualMode) {
-                    this.setToast('Manual Stepping Mode');
-                    this.stepAI(); // Execute the first step immediately
-                } else {
-                    this.setToast('Algorithm Running...');
-                    this.playAnimation();
-                }
+                // Play Loop
+                this.playLoop();
             },
 
-            stepAI: function () {
-                // If we haven't calculated the path yet, do it now
-                if (this.state === 'READY' || this.state === 'FINISHED') {
-                    this.runAI(true); // Call runAI with a flag to prevent auto-play
+            playLoop: async function () {
+                // If we reached the end
+                if (this.timeIdx >= this.timeline.length - 1) {
+                    this.finish();
                     return;
                 }
 
-                if (this.state === 'RUNNING' && this.currentFrame < this.animFrames.length) {
-                    this.renderFrame(this.currentFrame);
-                    this.currentFrame++;
+                const currentSnap = this.timeline[this.timeIdx];
+                const nextSnap = this.timeline[this.timeIdx + 1];
 
-                    if (this.currentFrame >= this.animFrames.length) {
-                        this.finishGame();
+                // Update Status Panel
+                this.updateStatus(nextSnap);
+
+                // If Next is ASSIGN: Just change colors (Fast)
+                if (nextSnap.phase === 'ASSIGN') {
+                    this.applySnapshot(nextSnap);
+                    this.timeIdx++;
+                    setTimeout(() => this.playLoop(), 400); // Small pause to see color change
+                }
+                // If Next is UPDATE: Interpolate Movement (Smooth)
+                else if (nextSnap.phase === 'UPDATE') {
+                    const startC = currentSnap.centroids;
+                    const endC = nextSnap.centroids;
+                    const duration = 500; // ms
+                    const startTime = performance.now();
+
+                    const animateMove = (now) => {
+                        const t = Math.min((now - startTime) / duration, 1);
+                        // Ease Out Cubic
+                        const ease = 1 - Math.pow(1 - t, 3);
+
+                        // Lerp Centroids
+                        const lerpedC = startC.map((c, i) => ({
+                            x: Utils.lerp(c.x, endC[i].x, ease),
+                            y: Utils.lerp(c.y, endC[i].y, ease)
+                        }));
+
+                        this.renderer.clear();
+                        this.renderer.drawVoronoi(lerpedC, document.getElementById('check-voronoi').checked);
+                        this.renderer.drawPoints(this.points); // Points color doesn't change here
+                        this.renderer.drawCentroids(lerpedC, true);
+
+                        if (t < 1) {
+                            requestAnimationFrame(animateMove);
+                        } else {
+                            this.timeIdx++;
+                            this.playLoop(); // Next step
+                        }
+                    };
+                    requestAnimationFrame(animateMove);
+                }
+                else {
+                    this.timeIdx++;
+                    this.playLoop();
+                }
+            },
+
+            /* STEPPING LOGIC */
+            stepForward: function () {
+                if (this.state === 'READY') {
+                    this.prepareTimeline();
+                    this.state = 'STEPPING';
+                    this.timeIdx = 0;
+                    this.updateUI();
+                    document.getElementById('status-panel').style.display = 'block';
+                }
+
+                if (this.timeIdx < this.timeline.length - 1) {
+                    this.timeIdx++;
+                    const snap = this.timeline[this.timeIdx];
+                    this.applySnapshot(snap);
+                    this.updateStatus(snap);
+
+                    if (this.timeIdx === this.timeline.length - 1) {
+                        this.finish();
                     }
                 }
             },
 
-            // Refactor the frame logic into a standalone helper
-            renderFrame: function (frameIdx) {
-                const frame = this.animFrames[frameIdx];
-                if (frame.type === 'assign') {
+            applySnapshot: function (snap) {
+                // Update Points
+                if (snap.phase !== 'INIT') {
                     this.points.forEach((p, i) => {
-                        p.color = Utils.getClusterColor(frame.assignments[i]);
+                        p.color = Utils.getClusterColor(snap.assignments[i]);
                     });
-                    document.getElementById('disp-inertia').innerText = Math.round(frame.inertia).toLocaleString();
-                    document.getElementById('disp-inertia').style.color = 'var(--eco-red)';
-                } else {
-                    this.aiCentroids = frame.centroids;
                 }
-                this.render(true);
+                this.renderCustom(snap.centroids);
             },
 
-            playAnimation: function () {
-                if (this.currentFrame >= this.animFrames.length) {
-                    this.finishGame();
-                    return;
-                }
+            updateStatus: function (snap) {
+                const badge = document.getElementById('stat-phase');
+                const iter = document.getElementById('stat-iter');
+                const inert = document.getElementById('stat-inertia');
 
-                const frame = this.animFrames[this.currentFrame];
+                iter.innerText = snap.iter || 0;
+                inert.innerText = Utils.fmtNum(snap.inertia);
 
-                if (frame.type === 'assign') {
-                    // Update point colors to AI view
-                    this.points.forEach((p, i) => {
-                        p.color = Utils.getClusterColor(frame.assignments[i]);
-                    });
-                    document.getElementById('disp-inertia').innerText = Math.round(frame.inertia).toLocaleString();
-                    document.getElementById('disp-inertia').style.color = 'var(--eco-red)';
+                if (snap.phase === 'ASSIGN') {
+                    badge.innerText = 'Assigning Points';
+                    badge.className = 'status-badge bg-assign';
+                } else if (snap.phase === 'UPDATE') {
+                    badge.innerText = 'Moving Centroids';
+                    badge.className = 'status-badge bg-update';
                 } else {
-                    // Move centroids
-                    // We could tween here, but for now instant jump per step
-                    this.aiCentroids = frame.centroids;
+                    badge.innerText = 'Finished';
+                    badge.className = 'status-badge bg-done';
                 }
-
-                this.render(true); // Force render AI centroids
-                this.currentFrame++;
-                setTimeout(() => this.playAnimation(), 400);
             },
 
-            finishGame: function () {
+            finish: function () {
                 this.state = 'FINISHED';
-                this.setToast('Comparison Complete');
+                this.updateUI();
+                this.toast('Convergence Reached');
 
-                // Show Comparison
-                document.getElementById('result-box').style.display = 'block';
+                // Show Results
+                const box = document.getElementById('result-box');
+                box.style.display = 'block';
+                document.getElementById('res-ai-inertia').innerText = Utils.fmtNum(this.aiFinalInertia);
+                document.getElementById('res-ai-iter').innerText = this.timeline[this.timeline.length - 1].iter;
 
-                // Calc width
-                const max = Math.max(this.userInertia, this.aiInertia) * 1.1;
-                const uW = (this.userInertia / max) * 100;
-                const aW = (this.aiInertia / max) * 100;
+                // Analysis Logic
+                const diff = ((this.userInertia - this.aiFinalInertia) / this.userInertia) * 100;
+                const summary = document.getElementById('res-summary');
 
-                document.getElementById('bar-human').style.width = uW + '%';
-                document.getElementById('bar-ai').style.width = aW + '%';
-
-                const efficiency = (this.aiInertia / this.userInertia) * 100;
-                document.getElementById('text-human').innerText = efficiency.toFixed(1) + '% Optimal';
-
-                // Revert points to user view or split? Let's keep AI view as "Solution"
-            },
-
-            toggleVoronoi: function () {
-                this.showVoronoi = document.getElementById('check-voronoi').checked;
-                this.render();
-            },
-
-            render: function (showAI = false) {
-                this.renderer.clear();
-
-                // Determine which centroids to show for Voronoi
-                // If Running AI, show AI Voronoi. Else User.
-                const activeCentroids = (this.state === 'RUNNING' || showAI) ? this.aiCentroids : this.centroids;
-
-                this.renderer.drawVoronoi(activeCentroids, this.k, this.showVoronoi);
-                this.renderer.drawPoints(this.points);
-
-                const showCentroids = document.getElementById('check-centroids').checked;
-                if (showCentroids) {
-                    if (this.state === 'RUNNING' || showAI) {
-                        this.renderer.drawCentroids(this.aiCentroids, false);
-                    } else {
-                        this.renderer.drawCentroids(this.centroids, true);
-                    }
+                if (diff > 1) {
+                    summary.innerHTML = `<strong>Analysis:</strong> The algorithm found a solution that is <span style="color:#008000; font-weight:bold">${diff.toFixed(1)}% more efficient</span> (lower inertia) than your placement.`;
+                } else if (diff < -1) {
+                    summary.innerHTML = `<strong>Outstanding!</strong> You beat the algorithm by <span style="color:#E3120B; font-weight:bold">${Math.abs(diff).toFixed(1)}%</span>. K-Means sometimes gets stuck in local minima, but you found the global optimum.`;
+                } else {
+                    summary.innerHTML = `<strong>Tie:</strong> Your intuition matches the algorithm's mathematical convergence almost perfectly.`;
                 }
+            },
+
+            /* RENDER HELPERS */
+            renderStatic: function () {
+                this.renderer.clear();
+                this.renderer.drawVoronoi(this.userCentroids, document.getElementById('check-voronoi').checked);
+                this.renderer.drawPoints(this.points);
+                this.renderer.drawCentroids(this.userCentroids, this.state === 'READY');
+            },
+
+            renderCustom: function (cents) {
+                this.renderer.clear();
+                this.renderer.drawVoronoi(cents, document.getElementById('check-voronoi').checked);
+                this.renderer.drawPoints(this.points);
+                this.renderer.drawCentroids(cents, true);
+            },
+
+            toast: function (msg) {
+                const t = document.getElementById('overlay-ui');
+                t.style.opacity = 0;
+                setTimeout(() => { t.innerHTML = msg; t.style.opacity = 1; }, 200);
             },
 
             updateUI: function () {
-                // Button States
-                document.getElementById('btn-run').disabled = this.state !== 'READY';
-                document.getElementById('btn-step').disabled = this.state !== 'READY';
-                document.getElementById('result-box').style.display = 'none';
-                document.getElementById('disp-inertia').style.color = 'var(--eco-blue)';
+                const btnRun = document.getElementById('btn-run');
+                const btnStep = document.getElementById('btn-step');
+
+                if (this.state === 'READY') {
+                    btnRun.disabled = false; btnRun.innerText = "Run Algorithm";
+                    btnStep.disabled = false;
+                } else if (this.state === 'RUNNING') {
+                    btnRun.disabled = true; btnRun.innerText = "Running...";
+                    btnStep.disabled = true;
+                } else if (this.state === 'STEPPING') {
+                    btnRun.disabled = true;
+                    btnStep.disabled = false;
+                } else if (this.state === 'FINISHED') {
+                    btnRun.disabled = true; btnRun.innerText = "Converged";
+                    btnStep.disabled = true;
+                } else {
+                    btnRun.disabled = true;
+                    btnStep.disabled = true;
+                }
             },
 
-            setToast: function (msg) {
-                const t = document.getElementById('overlay-ui');
-                t.style.opacity = 0;
-                setTimeout(() => {
-                    t.innerHTML = msg;
-                    t.style.opacity = 1;
-                }, 200);
+            toggleVoronoi: function () {
+                // Determine which centroids to draw based on state
+                if (this.state === 'RUNNING' || this.state === 'FINISHED' || this.state === 'STEPPING') {
+                    // Use current timeline index centroids
+                    if (this.timeline.length > 0) this.applySnapshot(this.timeline[this.timeIdx]);
+                } else {
+                    this.renderStatic();
+                }
             }
         };
 
-        // UI Helpers
         function updateVal(id, val) { document.getElementById(id).innerText = val; }
 
-        // Start
+        // Init
         window.onload = () => Game.init();
 
     </script>
